@@ -101,7 +101,7 @@ def main():
                 f.write(uploaded_template_file.read())
 
             # Process the files with user-provided output directory (or default)
-            process_excel("trips.xlsx", "payroll_template.xlsx", output_dir or "output_files")
+            process_excel(input_file, template_file, output_dir)
 
             st.success("Processing complete! Download the output files below.")
         else:
