@@ -1,86 +1,109 @@
 import streamlit as st
 import openpyxl
-import io
-from zipfile import ZipFile
-from io import BytesIO
+import os
 
-def process_excel(uploaded_input_file, uploaded_template_file):
-    try:
-        # Load input and template workbooks
-        input_workbook = openpyxl.load_workbook(uploaded_input_file)
-        input_worksheet = input_workbook.active
-        template_workbook = openpyxl.load_workbook(uploaded_template_file)
-        template_worksheet = template_workbook.active
+def process_excel(input_file, template_file, output_dir):
+    """Processes an Excel file, populates templates, and saves new files.
 
-        # Define target columns
-        target_columns = {"Trip ID": None, "Driver Name": None, "Facility Sequence": None, "Estimated Cost": None}
+    Args:
+        input_file: Path to the input Excel file.
+        template_file: Path to the template Excel file.
+        output_dir: Path to the output directory.
+    """
 
-        # Find column indices
-        for header_cell in input_worksheet.iter_rows(min_row=2, values_only=True):
-            if header_cell:
-                for col_idx, value in enumerate(header_cell):
-                    if value is not None:
-                        value_str = str(value).strip()
-                        if value_str in target_columns:
-                            target_columns[value_str] = col_idx + 1
+    workbook = openpyxl.load_workbook(input_file)
+    worksheet = workbook.active
 
-        # Check if all target columns were found
-        if not all(value for value in target_columns.values()):
-            raise ValueError(f"Missing target columns in input file: {', '.join(missing for missing in target_columns if not target_columns[missing])}")
+    # Define the column names we want to extract, matching the actual header names
+    target_columns = {"Trip ID": None, "Driver Name": None, "Facility Sequence": None, "Estimated Cost": None}
 
-        # Process data and create output files
-        driver_to_workbook = {}
+    # Find the column index for each target column name, considering headers are on row 2
+    for header_cell in worksheet.iter_rows(min_row=2, values_only=True):
+        if header_cell:
+            for col_idx, value in enumerate(header_cell):
+                if value is not None:
+                    value_str = str(value)
+                    if value_str.strip() in target_columns:
+                        target_columns[value_str.strip()] = col_idx + 1
 
-        for row_num, row in enumerate(input_worksheet.iter_rows(min_row=3, values_only=True), 3):
-            if row:
-                # Extract data from input row
-                trip_id = row[target_columns["Trip ID"] - 1]
-                driver_name = row[target_columns["Driver Name"] - 1]
-                facility_sequence = row[target_columns["Facility Sequence"] - 1]
-                estimated_cost = row[target_columns["Estimated Cost"] - 1]
+    # Check if all target columns were found
+    if not all(value for value in target_columns.values()):
+        raise ValueError(f"Missing target columns in input file: {', '.join(missing for missing in target_columns if not target_columns[missing])}")
 
-                # Get the workbook for the current driver
-                workbook = driver_to_workbook.setdefault(driver_name, openpyxl.Workbook())
-                worksheet = workbook.active
+    processed_drivers = {}  # To keep track of processed drivers, next row for each
 
-                # Copy formatting and structure from template
-                for row in template_worksheet.iter_rows():
-                    for cell in row:
-                        worksheet.cell(row=cell.row, column=cell.column).style = cell.style
+    start_row = 16  # Starting row for Trip IDs
+    facility_row = 18  # Starting row for Facility Sequence
+    estimated_cost_row = 19  # Starting row for Estimated Cost
+    cell_offset = 5  # Increment for each new Trip ID, Facility Sequence, and Estimated Cost
 
-                # Populate data onto the template
-                worksheet['B11'] = trip_id
-                worksheet['D4'] = driver_name
-                worksheet['B13'] = facility_sequence
-                worksheet['B14'] = estimated_cost
+    for row_num, row in enumerate(worksheet.iter_rows(min_row=3, values_only=True), 3):
+        if row:
+            Trip_ID = row[target_columns["Trip ID"] - 1]
+            Driver_Name = row[target_columns["Driver Name"] - 1]
+            Facility_Sequence = row[target_columns["Facility Sequence"] - 1]
+            Estimated_Cost = row[target_columns["Estimated Cost"] - 1]
 
-        # Create a zip file to download all output files
-        zip_buffer = BytesIO()
-        with ZipFile(zip_buffer, 'w') as zipf:
-            for driver_name, workbook in driver_to_workbook.items():
-                filename = f"{driver_name}.xlsx"
-                with io.BytesIO() as file_buffer:
-                    workbook.save(file_buffer)
-                    file_buffer.seek(0)
-                    zipf.writestr(filename, file_buffer.read())
+            output_file = os.path.join(output_dir, f"{Driver_Name}.xlsx")
 
-        zip_buffer.seek(0)
-        st.download_button(label="Download All Files", data=zip_buffer, file_name="output_files.zip")
+            if Driver_Name not in processed_drivers:
+                # First occurrence of the driver
+                processed_drivers[Driver_Name] = {'trip_row': start_row, 'facility_row': facility_row, 'estimated_cost_row': estimated_cost_row}
+                template_workbook = openpyxl.load_workbook(template_file)
+                template_worksheet = template_workbook.active
 
-    except FileNotFoundError:
-        st.error(f"Failed to open input file.")
-    except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+                template_worksheet['D4'] = Driver_Name
+                template_worksheet['B11'] = Trip_ID
+                template_worksheet['B13'] = Facility_Sequence
+                template_worksheet['B14'] = Estimated_Cost
+                template_workbook.save(output_file)
+            else:
+                # Subsequent occurrences of the driver
+                existing_workbook = openpyxl.load_workbook(output_file)
+                driver_data = processed_drivers[Driver_Name]
+                current_trip_row = driver_data['trip_row']
+                current_facility_row = driver_data['facility_row']
+                current_estimated_cost_row = driver_data['estimated_cost_row']
+
+                existing_worksheet = existing_workbook.active
+                existing_worksheet[f"B{current_trip_row}"] = Trip_ID
+                existing_worksheet[f"B{current_facility_row}"] = Facility_Sequence
+                existing_worksheet[f"B{current_estimated_cost_row}"] = Estimated_Cost
+
+                # Update rows for the next iteration with offset
+                driver_data['trip_row'] += cell_offset
+                driver_data['facility_row'] += cell_offset
+                driver_data['estimated_cost_row'] += cell_offset
+
+                existing_workbook.save(output_file)
+
+# Replace with your actual file paths
+input_file = "input/trips.xlsx"
+template_file = "template/payroll_template.xlsx"
+output_dir = "output_files"
 
 def main():
     st.title("Excel Processor")
 
+    # File upload sections
     uploaded_input_file = st.file_uploader("Upload Input File", type=["xlsx"])
     uploaded_template_file = st.file_uploader("Upload Template File", type=["xlsx"])
 
+    # Output directory input
+    output_dir = st.text_input("Output Directory (Leave blank for default)", value="output_files")
+
     if st.button("Process"):
         if uploaded_input_file is not None and uploaded_template_file is not None:
-            process_excel(uploaded_input_file, uploaded_template_file)
+            # Save uploaded files to temporary files
+            with open("input.xlsx", "wb") as f:
+                f.write(uploaded_input_file.read())
+            with open("template.xlsx", "wb") as f:
+                f.write(uploaded_template_file.read())
+
+            # Process the files with user-provided output directory (or default)
+            process_excel("trips.xlsx", "payroll_template.xlsx", output_dir or "output_files")
+
+            st.success("Processing complete! Download the output files below.")
         else:
             st.warning("Please upload both input and template files.")
 
