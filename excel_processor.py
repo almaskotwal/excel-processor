@@ -84,6 +84,7 @@ output_dir = "output_files"
 
 # process_excel(input_file, template_file, output_dir)
 
+
 def main():
     st.title("Excel Processor")
 
@@ -101,12 +102,13 @@ def main():
             with open("template.xlsx", "wb") as f:
                 f.write(uploaded_template_file.read())
 
-            process_excel(input_file, template_file, output_dir)
+            process_excel(uploaded_input_file.name, uploaded_template_file.name, output_dir)
 
-            with open(os.path.join(output_dir, "output.xlsx"), "rb") as f:
-                st.download_button("Download Output File", f, file_name="output.xlsx")
         else:
             st.warning("Please upload both input and template files.")
 
 if __name__ == "__main__":
     main()
+
+
+    
