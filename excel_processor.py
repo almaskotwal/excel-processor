@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import openpyxl
 import io
@@ -60,7 +61,7 @@ def process_excel(uploaded_input_file, uploaded_template_file, output_dir):
                 if Driver_Name not in processed_drivers:
                     # First occurrence of the driver
                     processed_drivers[Driver_Name] = {'trip_row': start_row, 'facility_row': facility_row, 'estimated_cost_row': estimated_cost_row}
-                    template_workbook = openpyxl.load_workbook(template_file)
+                    template_workbook = openpyxl.load_workbook(template_data)
                     template_worksheet = template_workbook.active
 
                     template_worksheet['D4'] = Driver_Name
