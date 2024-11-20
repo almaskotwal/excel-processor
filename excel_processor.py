@@ -90,13 +90,13 @@ def process_excel(uploaded_input_file, uploaded_template_file, output_dir):
                     existing_workbook.save(output_file)
 
 
+        # Generate a descriptive filename based on processed data (e.g., driver name)
+        output_filename = f"{processed_drivers['Driver Name']}.xlsx" 
+         
         # Create a temporary file object in memory for download
         output_data = io.BytesIO()
         output_workbook.save(output_data)
         output_data.seek(0)
-
-        # Generate a descriptive filename based on processed data (e.g., driver name)
-        output_filename = f"{processed_drivers['Driver Name']}.xlsx"  # Replace with your desired filename
 
         # Download the processed file using Streamlit download button
         st.download_button(label="Download Processed File", data=output_data, file_name=output_filename)
