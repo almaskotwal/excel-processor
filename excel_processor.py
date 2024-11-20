@@ -43,12 +43,12 @@ def process_excel(uploaded_input_file, uploaded_template_file):
                 workbook = driver_to_workbook.setdefault(driver_name, openpyxl.Workbook())
                 worksheet = workbook.active
 
-                # Copy formatting from template to output worksheet
+                # Copy formatting and structure from template
                 for row in template_worksheet.iter_rows():
                     for cell in row:
                         worksheet.cell(row=cell.row, column=cell.column).style = cell.style
 
-                # Populate output worksheet with data
+                # Populate data onto the template
                 worksheet['B11'] = trip_id
                 worksheet['D4'] = driver_name
                 worksheet['B13'] = facility_sequence
