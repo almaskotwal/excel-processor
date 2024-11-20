@@ -46,7 +46,7 @@ def process_excel(uploaded_input_file, uploaded_template_file):
                 # Copy formatting from template to output worksheet
                 for row in template_worksheet.iter_rows():
                     for cell in row:
-                        output_worksheet.cell(row=cell.row, column=cell.column).style = cell.style
+                        worksheet.cell(row=cell.row, column=cell.column).style = cell.style
 
                 # Populate output worksheet with data
                 worksheet['B11'] = trip_id
