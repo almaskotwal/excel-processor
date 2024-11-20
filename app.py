@@ -83,13 +83,17 @@ def main():
 
             processed_drivers = process_excel("input.xlsx", "template.xlsx", output_dir)
 
-            # Download individual files without ZIP
-            for driver_name in processed_drivers:
-                output_file = os.path.join(output_dir, f"{driver_name}.xlsx")
-                with open(output_file, "rb") as f:
-                    st.download_button(f"Download {driver_name} File", f, file_name=f"{driver_name}.xlsx")
+            # Create a ZIP file containing all output files
+            zip_filename = "output_files.zip"
+            with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for driver_name in processed_drivers:
+                    output_file = os.path.join(output_dir, f"{driver_name}.xlsx")
+                    zipf.write(output_file)
 
-            st.success("Processing complete! Download the individual output files above.")
+            with open(zip_filename, "rb") as f:
+                st.download_button("Download All Files", f, file_name=zip_filename)
+
+            st.success("Processing complete! Download the ZIP file above.")
         else:
             st.warning("Please upload both input and template files.")
 
