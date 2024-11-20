@@ -1,7 +1,8 @@
 import streamlit as st
 import openpyxl
 import io
-from collections import defaultdict
+from zipfile import ZipFile
+from io import BytesIO
 
 def process_excel(uploaded_input_file, uploaded_template_file):
     try:
@@ -28,7 +29,7 @@ def process_excel(uploaded_input_file, uploaded_template_file):
             raise ValueError(f"Missing target columns in input file: {', '.join(missing for missing in target_columns if not target_columns[missing])}")
 
         # Process data and create output files
-        driver_to_workbook = defaultdict(lambda: openpyxl.Workbook())
+        driver_to_workbook = {}
 
         for row_num, row in enumerate(input_worksheet.iter_rows(min_row=3, values_only=True), 3):
             if row:
@@ -39,22 +40,32 @@ def process_excel(uploaded_input_file, uploaded_template_file):
                 estimated_cost = row[target_columns["Estimated Cost"] - 1]
 
                 # Get the workbook for the current driver
-                workbook = driver_to_workbook[driver_name]
+                workbook = driver_to_workbook.setdefault(driver_name, openpyxl.Workbook())
                 worksheet = workbook.active
 
-                # Populate the worksheet based on template
-                # (Adjust cell references as needed)
+                # Copy formatting from template to output worksheet
+                for row in template_worksheet.iter_rows():
+                    for cell in row:
+                        output_worksheet.cell(row=cell.row, column=cell.column).style = cell.style
+
+                # Populate output worksheet with data
                 worksheet['B11'] = trip_id
                 worksheet['D4'] = driver_name
                 worksheet['B13'] = facility_sequence
                 worksheet['B14'] = estimated_cost
 
-        # Save and download output files
-        for driver_name, workbook in driver_to_workbook.items():
-            output_data = io.BytesIO()
-            workbook.save(output_data)
-            output_data.seek(0)
-            st.download_button(label=f"Download {driver_name}'s File", data=output_data, file_name=f"{driver_name}.xlsx")
+        # Create a zip file to download all output files
+        zip_buffer = BytesIO()
+        with ZipFile(zip_buffer, 'w') as zipf:
+            for driver_name, workbook in driver_to_workbook.items():
+                filename = f"{driver_name}.xlsx"
+                with io.BytesIO() as file_buffer:
+                    workbook.save(file_buffer)
+                    file_buffer.seek(0)
+                    zipf.writestr(filename, file_buffer.read())
+
+        zip_buffer.seek(0)
+        st.download_button(label="Download All Files", data=zip_buffer, file_name="output_files.zip")
 
     except FileNotFoundError:
         st.error(f"Failed to open input file.")
@@ -64,7 +75,6 @@ def process_excel(uploaded_input_file, uploaded_template_file):
 def main():
     st.title("Excel Processor")
 
-    # File upload
     uploaded_input_file = st.file_uploader("Upload Input File", type=["xlsx"])
     uploaded_template_file = st.file_uploader("Upload Template File", type=["xlsx"])
 
