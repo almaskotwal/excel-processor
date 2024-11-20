@@ -62,6 +62,8 @@ def process_excel(input_file, template_file, output_dir):
 
                 existing_workbook.save(output_file)
 
+    return processed_drivers
+
 def main():
     st.title("Excel Processor")
 
@@ -77,7 +79,7 @@ def main():
             with open("template.xlsx", "wb") as f:
                 f.write(uploaded_template_file.read())
 
-            process_excel("input.xlsx", "template.xlsx", output_dir)
+            processed_drivers = process_excel("input.xlsx", "template.xlsx", output_dir)
 
             for driver_name in processed_drivers:
                 output_file = os.path.join(output_dir, f"{driver_name}.xlsx")
