@@ -2,6 +2,8 @@ import streamlit as st
 import openpyxl
 import os
 import zipfile
+from datetime import datetime, timedelta
+
 
 
 def process_excel(input_file, template_file, output_dir):
@@ -46,6 +48,16 @@ def process_excel(input_file, template_file, output_dir):
                 template_worksheet['B13'] = Facility_Sequence
                 template_worksheet['B14'] = Estimated_Cost
                 template_workbook.save(output_file)
+
+                template_worksheet['D3'] = datetime.today().strftime('%m/%d/%Y')
+
+                # Calculate start and end dates
+                today = datetime.today()
+                start_date = today - timedelta(days=today.weekday())  # Adjust for Saturday as start
+                end_date = start_date + timedelta(days=6)
+
+                template_worksheet['D6'] = start_date.strftime('%m/%d/%Y')
+                template_worksheet['D7'] = end_date.strftime('%m/%d/%Y')
             else:
                 existing_workbook = openpyxl.load_workbook(output_file)
                 driver_data = processed_drivers[Driver_Name]
