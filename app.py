@@ -42,9 +42,10 @@ def process_excel(input_file, template_file, output_dir):
                 template_workbook = openpyxl.load_workbook(template_file)
                 template_worksheet = template_workbook.active
 
-                # Calculate start and end dates
+                    # Calculate start and end dates
                 today = datetime.today()
-                start_date = today - timedelta(days=today.weekday())  # Adjust for Saturday as start
+                # Adjust to the nearest Saturday
+                start_date = today - timedelta(days=today.weekday() % 7)
                 end_date = start_date + timedelta(days=6)
 
                 # Populate date fields in the template
