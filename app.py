@@ -1,10 +1,7 @@
 import streamlit as st
 import openpyxl
 import os
-import zipfile
 from datetime import datetime, timedelta
-
-
 
 def process_excel(input_file, template_file, output_dir):
     workbook = openpyxl.load_workbook(input_file)
@@ -43,21 +40,21 @@ def process_excel(input_file, template_file, output_dir):
                 processed_drivers[Driver_Name] = {'trip_row': start_row, 'facility_row': facility_row, 'estimated_cost_row': estimated_cost_row}
                 template_workbook = openpyxl.load_workbook(template_file)
                 template_worksheet = template_workbook.active
+
+                # Populate date fields in the template
+                today = datetime.today()
+                start_date = today - timedelta(days=today.weekday())
+                end_date = start_date + timedelta(days=6)
+
+                template_worksheet['D3'] = today.strftime('%m/%d/%Y')
+                template_worksheet['D6'] = start_date.strftime('%m/%d/%Y')
+                template_worksheet['D7'] = end_date.strftime('%m/%d/%Y')
+
                 template_worksheet['B11'] = Trip_ID
                 template_worksheet['D4'] = Driver_Name
                 template_worksheet['B13'] = Facility_Sequence
                 template_worksheet['B14'] = Estimated_Cost
                 template_workbook.save(output_file)
-
-                template_worksheet['D3'] = datetime.today().strftime('%m/%d/%Y')
-
-                # Calculate start and end dates
-                today = datetime.today()
-                start_date = today - timedelta(days=today.weekday())  # Adjust for Saturday as start
-                end_date = start_date + timedelta(days=6)
-
-                template_worksheet['D6'] = start_date.strftime('%m/%d/%Y')
-                template_worksheet['D7'] = end_date.strftime('%m/%d/%Y')
             else:
                 existing_workbook = openpyxl.load_workbook(output_file)
                 driver_data = processed_drivers[Driver_Name]
@@ -95,17 +92,12 @@ def main():
 
             processed_drivers = process_excel("input.xlsx", "template.xlsx", output_dir)
 
-            # Create a ZIP file containing all output files
-            zip_filename = "output_files.zip"
-            with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for driver_name in processed_drivers:
-                    output_file = os.path.join(output_dir, f"{driver_name}.xlsx")
-                    zipf.write(output_file)
+            for driver_name in processed_drivers:
+                output_file = os.path.join(output_dir, f"{driver_name}.xlsx")
+                with open(output_file, "rb") as f:
+                    st.download_button(f"Download {driver_name} File", f, file_name=f"{driver_name}.xlsx")
 
-            with open(zip_filename, "rb") as f:
-                st.download_button("Download All Files", f, file_name=zip_filename)
-
-            st.success("Processing complete! Download the ZIP file above.")
+            st.success("Processing complete! Download the output files above.")
         else:
             st.warning("Please upload both input and template files.")
 
