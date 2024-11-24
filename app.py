@@ -49,6 +49,14 @@ def process_excel(input_file, template_file, output_dir):
                 start_date = today - timedelta(days=today.weekday())
                 end_date = start_date + timedelta(days=6)
 
+                            # Adjust to the nearest Saturday
+                if today.weekday() == 6:  # If today is Saturday
+                    start_date = today
+                else:
+                    start_date = today - timedelta(days=today.weekday() + 1)
+
+                end_date = start_date + timedelta(days=6)
+
                 # Populate date fields in the template
                 template_worksheet['D3'] = today.strftime('%m/%d/%Y')
                 template_worksheet['D6'] = start_date.strftime('%m/%d/%Y')
