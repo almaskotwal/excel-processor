@@ -1,3 +1,4 @@
+import pytz
 import streamlit as st
 import openpyxl
 import os
@@ -42,8 +43,9 @@ def process_excel(input_file, template_file, output_dir):
                 template_workbook = openpyxl.load_workbook(template_file)
                 template_worksheet = template_workbook.active
 
-                # Calculate start and end dates, specifying the desired timezone
-                today = datetime.now(pytz.timezone('US/Mountain'))
+               # Calculate start and end dates in Mountain Time
+                mountain_tz = pytz.timezone('MST')
+                today = datetime.now(mountain_tz)
                 start_date = today - timedelta(days=today.weekday())
                 end_date = start_date + timedelta(days=6)
 
