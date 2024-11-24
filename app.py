@@ -42,9 +42,9 @@ def process_excel(input_file, template_file, output_dir):
                 template_workbook = openpyxl.load_workbook(template_file)
                 template_worksheet = template_workbook.active
 
-                # Calculate start and end dates using local time
-                today = datetime.now()  # Use datetime.now() for local time
-                start_date = today - timedelta(days=today.weekday() % 7)
+                # Calculate start and end dates, specifying the desired timezone
+                today = datetime.now(pytz.timezone('US/Mountain'))
+                start_date = today - timedelta(days=today.weekday())
                 end_date = start_date + timedelta(days=6)
 
                 # Populate date fields in the template
